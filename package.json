@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-media-photo-picker",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Android/iOS media picker using Photo Picker API - no broad media permissions required",
   "cordova": {
     "id": "cordova-plugin-media-photo-picker",
