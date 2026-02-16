@@ -1,139 +1,160 @@
-# MediaPicker v:2.5.0
+# MediaPicker v3.0.0
 
-android ios mediaPicker support  selection of multiple image and video gif  (Support Chinese, English, Spanish, Portuguese, and Turkish)</br>
+Android/iOS media picker plugin with **Photo Picker API** support - **no broad media permissions required**.
 
-android 和 ios cordova图片视频选择插件，支持多图 视频 gif，ui类似微信。 联系QQ：3451927565</br>
+This fork removes `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, and `READ_MEDIA_AUDIO` permissions by using Android's native Photo Picker API (Android 13+) with fallback to `ACTION_OPEN_DOCUMENT` for older versions.
 
-[GitHub:](https://github.com/DmcSDK/cordova-plugin-mediaPicker) https://github.com/DmcSDK/cordova-plugin-mediaPicker</br>
+## What's New in v3.0.0
 
-怎么用？How do I use?
--------------------
+- **No media permissions required** - Uses Android Photo Picker API (Android 13+) and `ACTION_OPEN_DOCUMENT` (Android 12 and below)
+- **Google Play compliant** - Passes Google Play Store policy checks for media permissions
+- **Removed external library dependency** - No longer depends on `com.github.DmcSDK:MediaPickerPoject`
+- **Backward compatible** - Same JavaScript API as v2.x
 
-use npm OR github:
+## Installation
 
+```bash
+cordova plugin add cordova-plugin-media-photo-picker --variable IOS_PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
 ```
-  cordova plugin add https://github.com/DmcSDK/cordova-plugin-mediaPicker.git --variable IOS_PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
+
+Or from local path:
+```bash
+cordova plugin add /path/to/cordova-plugin-media-photo-picker --variable IOS_PHOTO_LIBRARY_USAGE_DESCRIPTION="your usage message"
 ```
 
-## Android tips
-add this code in **repositories.gradle** file。
-becouse android mediapick4.0 core code in jitpack.io。
-```
-ext.repos = {
-    google()
-    mavenCentral()
-    maven { //add this 
-        url 'https://jitpack.io' //add this 
-    }
-}
-```
+## Requirements
+
+- **cordova-android**: >= 10.0.0
+- **Android SDK**: 21+ (Android 5.0+)
+- **iOS**: 9.0+
 
 ## Example
-html code:
 
-    <body>
-        <div>
-            <img name="imgView"  height="100px" >
-            <img name="imgView"  height="100px" >
-        </div>
-        <button id="openBtn">open</button>
-        <button id="uploadBtn">upload</button>
-        <button id="takePhotoBtn">takePhoto</button>
-        <script type="text/javascript" src="cordova.js"></script>
-        <script type="text/javascript" src="js/index.js"></script>
-    </body>
-
-demo.js **simple** code: 
-```
-var resultMedias=[];
-var imgs = document.getElementsByName('imgView');
+```javascript
 var args = {
-    'selectMode': 101, //101=picker image and video , 100=image , 102=video
-    'maxSelectCount': 40, //default 40 (Optional)
-    'maxSelectSize': 188743680, //188743680=180M (Optional) 
+    'selectMode': 101, // 101=image+video, 100=image only, 102=video only
+    'maxSelectCount': 10, // default 10
 };
 
-document.getElementById('openBtn').onclick = function() {
-    MediaPicker.getMedias(args, function(medias) {
-        //medias [{mediaType: "image", path:'/storage/emulated/0/DCIM/Camera/2017.jpg', uri:"android retrun uri,ios retrun URL" size: 21993}]
-        resultMedias = medias;
-        getThumbnail(medias);
-    }, function(e) { console.log(e) })
-};
-
-function getThumbnail(medias) {
-    for (var i = 0; i < medias.length; i++) {
-        //medias[i].thumbnailQuality=50; (Optional)
-        //loadingUI(); //show loading ui
-        MediaPicker.extractThumbnail(medias[i], function(data) {
-            imgs[data.index].src = 'data:image/jpeg;base64,' + data.thumbnailBase64;
-            imgs[data.index].setAttribute('style', 'transform:rotate(' + data.exifRotate + 'deg)');
-        }, function(e) { console.log(e) });
-    }
-}
-
-function loadingUI() {}
-```    
-
-### upload and compress 上传 和 压缩
-demo.js **upload** and **compress** code:
+MediaPicker.getMedias(args, function(medias) {
+    // medias = [{
+    //   mediaType: "image",
+    //   path: '/data/user/0/.../cache/photo.jpg',
+    //   uri: "file:///data/user/0/.../cache/photo.jpg",
+    //   size: 21993,
+    //   name: "photo.jpg",
+    //   index: 0
+    // }]
+    console.log(medias);
+}, function(error) {
+    console.error(error);
+});
 ```
-document.getElementById('uploadBtn').onclick = function() {
-    //1.please:  cordova plugin add cordova-plugin-file-transfer
-    //2.see:  https://github.com/apache/cordova-plugin-file-transfer
-    
-    //3.use medias[index].path //upload original img
-    //OR
-    //3.compressImage(); //upload compress img
-};
 
-function compressImage() {
-    for (var i = 0; i < resultMedias.length; i++) {
-        // if(resultMedias[i].size>1048576){ resultMedias[i].quality=50; } else {d ataArray[i].quality=100;}
-        resultMedias[i].quality = 30; //when the value is 100,return original image
-        MediaPicker.compressImage(resultMedias[i], function(compressData) {
-            //user compressData.path upload compress img
-            console.log(compressData.path);
-        }, function(e) { console.log(e) });
-    }
-}
+### Get Thumbnail
 
-//ios Video transcoding compression to MP4 Event(use AVAssetExportPresetMediumQuality)
-document.addEventListener("MediaPicker.CompressVideoEvent", function(data) {
-    alert(data.status + "||" + data.index);
-}, false);
-```    
-
-### takePhoto 拍照 
-demo.js **takePhoto** code:
-
-please add : cordova plugin add cordova-plugin-camera
-
-cameraOptions docs: https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#camera
+```javascript
+MediaPicker.extractThumbnail(media, function(data) {
+    img.src = 'data:image/jpeg;base64,' + data.thumbnailBase64;
+    img.style.transform = 'rotate(' + data.exifRotate + 'deg)';
+}, function(error) {
+    console.error(error);
+});
 ```
-//please add : cordova plugin add cordova-plugin-camera
-document.getElementById('takePhotoBtn').onclick = function() {
-    var cameraOptions={ quality: 50,mediaType: Camera.MediaType.PICTURE };//see cordova camera docs
-    MediaPicker.takePhoto(cameraOptions,function(media) {
-            media.index=0;//index use to imgs[data.index].src; // media.index=resultMedias.length;
-            resultMedias.push(media);
-            getThumbnail(resultMedias);
-      }, function(e) { console.log(e) });
-};
-```    
 
-# More api 其他API
-[API](https://github.com/DmcSDK/cordova-plugin-mediaPicker/blob/master/www/MediaPicker.js) https://github.com/DmcSDK/cordova-plugin-mediaPicker/blob/master/www/MediaPicker.js</br>
+### Compress Image
 
-[My android source code GitHub:](https://github.com/DmcSDK/MediaPickerPoject) https://github.com/DmcSDK/MediaPickerPoject</br>
+```javascript
+media.quality = 50; // 1-100, 100 = original
+MediaPicker.compressImage(media, function(compressedData) {
+    console.log('Compressed path:', compressedData.path);
+    console.log('New size:', compressedData.size);
+}, function(error) {
+    console.error(error);
+});
+```
 
-[My IOS source code GitHub:](https://github.com/DmcSDK/IOSMediaPicker) https://github.com/DmcSDK/IOSMediaPicker</br>
+### Take Photo
 
-# Screenshots
+```javascript
+MediaPicker.takePhoto({}, function(media) {
+    console.log('Photo taken:', media.path);
+}, function(error) {
+    console.error(error);
+});
+```
 
-| Android         | iOS          |
-|:---------------:|:------------:|
-| <img src="https://raw.githubusercontent.com/DmcSDK/cordova-plugin-mediaPicker/master/www/demo/Screenshots1.png" width="270px" height="480"> | <img src="https://raw.githubusercontent.com/DmcSDK/cordova-plugin-mediaPicker/master/www/demo/ios.png" width="270px" height="480"> |
+## API Reference
 
+### MediaPicker.getMedias(options, successCallback, errorCallback)
 
+Opens the system photo picker to select images and/or videos.
 
+**Options:**
+- `selectMode` (number): 100 = images only, 101 = images + videos, 102 = videos only
+- `maxSelectCount` (number): Maximum number of items to select (default: 10)
+- `thumbnailQuality` (number): Quality for thumbnail extraction (1-100, default: 50)
+- `thumbnailW` (number): Thumbnail width in pixels (default: 200)
+- `thumbnailH` (number): Thumbnail height in pixels (default: 200)
+
+### MediaPicker.takePhoto(options, successCallback, errorCallback)
+
+Opens the camera to take a photo.
+
+### MediaPicker.extractThumbnail(media, successCallback, errorCallback)
+
+Extracts a thumbnail from an image or video.
+
+### MediaPicker.compressImage(media, successCallback, errorCallback)
+
+Compresses an image with specified quality.
+
+### MediaPicker.getFileInfo(pathOrUri, type, successCallback, errorCallback)
+
+Gets file information from a path or URI.
+
+### MediaPicker.fileToBlob(path, successCallback, errorCallback)
+
+Converts a file to a blob/byte array.
+
+### MediaPicker.getExifForKey(path, tag, successCallback, errorCallback)
+
+Gets EXIF metadata for a specific tag.
+
+## Android Permissions
+
+This plugin requires **no media permissions** on Android. It uses:
+- **Android 13+**: Native Photo Picker API (`MediaStore.ACTION_PICK_IMAGES`)
+- **Android 12 and below**: Storage Access Framework (`ACTION_OPEN_DOCUMENT`)
+
+Only the `CAMERA` permission is requested for the `takePhoto` functionality.
+
+## iOS Permissions
+
+On iOS, the plugin still requires photo library access. Add the usage description:
+
+```xml
+<config-file target="*-Info.plist" parent="NSPhotoLibraryUsageDescription">
+    <string>This app needs access to your photo library to select photos and videos.</string>
+</config-file>
+```
+
+## Migration from v2.x
+
+The JavaScript API is fully backward compatible. Simply update the plugin:
+
+1. Remove the old plugin: `cordova plugin rm cordova-plugin-mediapicker-dmcsdk` (or `cordova-plugin-media-photo-picker` if upgrading from a prior v3 install)
+2. Add the new version: `cordova plugin add cordova-plugin-media-photo-picker`
+3. Rebuild your app
+
+**Note:** The Android UI will now use the system photo picker instead of the custom gallery UI. This provides a consistent experience across all Android apps and ensures Google Play compliance.
+
+## License
+
+ISC
+
+## Credits
+
+Original plugin by [DmcSDK](https://github.com/DmcSDK/cordova-plugin-mediaPicker)
+
+Photo Picker API implementation for Google Play compliance.
